@@ -1816,7 +1816,7 @@ impl ConfigFile {
     /// interpreter's `sys.path` includes the `PYTHONPATH` entries, so checks in other
     /// environments may not find the same imports. `PYTHONPATH` is fixed for the lifetime of
     /// the process, so the warning is emitted at most once.
-    pub fn warn_if_pythonpath_set(&self) {
+    fn warn_if_pythonpath_set(&self) {
         static WARNED: Once = Once::new();
         if !self.disable_pythonpath_warning
             && let Ok(pythonpath) = env::var("PYTHONPATH")
@@ -1883,7 +1883,6 @@ impl ConfigFile {
         } else {
             match self.interpreters.find_interpreter(project_root.as_deref()) {
                 Ok(interpreter) => {
-                    self.warn_if_pythonpath_set();
                     let (env, error) = PythonEnvironment::get_interpreter_env(&interpreter);
                     self.python_environment.override_empty(env);
                     if let Some(error) = error {
@@ -1920,6 +1919,9 @@ impl ConfigFile {
                     configure_errors.push(error.context("While finding Python interpreter"));
                 }
             }
+        }
+        if self.interpreters.python_interpreter_path.is_some() {
+            self.warn_if_pythonpath_set();
         }
 
         // A `typings/` directory under the project root is always a default
